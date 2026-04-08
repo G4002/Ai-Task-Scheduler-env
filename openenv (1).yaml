@@ -1,0 +1,3 @@
+name: task_scheduler_env
+description: Simple task scheduling environment
+entry_point: inference.py
