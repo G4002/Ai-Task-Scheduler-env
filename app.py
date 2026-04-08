@@ -1,9 +1,8 @@
 import gradio as gr
 import pandas as pd
-import os
 
 # ===== CONFIG =====
-MODEL_NAME = "gpt-4o-mini"  # demo model for hackathon
+MODEL_NAME = "gpt-4o-mini"  # Dummy model for hackathon
 MAX_STEPS = 8
 
 # ===== TASK PROMPTS =====
@@ -15,10 +14,7 @@ TASKS = {
 
 # ===== LLM CALL (Dummy for Hackathon) =====
 def get_model_response(prompt):
-    """
-    Hackathon-friendly dummy response.
-    Returns a meaningful text.
-    """
+    """Returns a dummy response for hackathon demo."""
     if "Echo Task" in prompt:
         return "Demo response for hackathon."
     elif "Creative Task" in prompt:
@@ -30,16 +26,16 @@ def get_model_response(prompt):
 
 # ===== MAIN SIMULATION =====
 def run_simulation(task_name, steps):
-    output = f"[START] task={task_name} model=gpt-4o-mini\n\n"
+    output = f"[START] task={task_name} model={MODEL_NAME}\n\n"
     rewards = []
     steps_list = []
     history = ""
 
     for step in range(1, int(steps)+1):
         prompt = TASKS[task_name] + "\n" + history
-        action = get_model_response(prompt)  # dummy response
+        action = get_model_response(prompt)
 
-        reward = 1.0  # always perfect
+        reward = 1.0  # perfect reward for demo
         done = step == int(steps)
 
         rewards.append(reward)
@@ -47,6 +43,7 @@ def run_simulation(task_name, steps):
         output += f"[STEP] step={step} action={action} reward={reward:.2f} done={str(done).lower()}\n"
         history += action + "\n"
 
+        # Yield step-by-step for live logs
         yield output, pd.DataFrame({"Step": steps_list, "Reward": rewards}), sum(rewards)/len(rewards)
 
     score = sum(rewards)/len(rewards)
@@ -54,22 +51,24 @@ def run_simulation(task_name, steps):
     output += f"\n[END] success={str(success).lower()} score={score:.2f}"
     yield output, pd.DataFrame({"Step": steps_list, "Reward": rewards}), score
 
-# ===== RESET =====
+# ===== RESET (Hackathon requires this endpoint) =====
 def reset():
-    # This must match outputs=[output_box, graph, score_box, task_dropdown, steps_input]
+    """
+    Hackathon backend expects POST to /reset.
+    Returns the initial state in the exact format required by Gradio.
+    """
+    # output_box, graph, score_box, task_dropdown, steps_input
     return "", None, 0.0, "Echo Task", 3
 
-# ===== DOWNLOAD =====
+# ===== DOWNLOAD RESULTS =====
 def download_results(task_name, steps):
-    data = []
-    for i in range(1, int(steps) + 1):
-        data.append({"Step": i, "Reward": 1})
+    data = [{"Step": i, "Reward": 1} for i in range(1, int(steps)+1)]
     df = pd.DataFrame(data)
     file_path = "results.csv"
     df.to_csv(file_path, index=False)
     return file_path
 
-# ===== UI =====
+# ===== GRADIO UI =====
 with gr.Blocks(theme=gr.themes.Soft()) as demo:
     gr.Markdown("# 🚀 AI Task Scheduler (Hackathon Project)")
     gr.Markdown("### Powered by Simulation + Scoring (Dummy Mode)")
@@ -88,32 +87,29 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         download_btn = gr.Button("📦 Download CSV")
 
     output_box = gr.Textbox(label="📊 Output Logs", lines=12)
-
-    graph = gr.LinePlot(
-        x="Step",
-        y="Reward",
-        title="📈 Reward vs Steps"
-    )
-
+    graph = gr.LinePlot(x="Step", y="Reward", title="📈 Reward vs Steps")
     score_box = gr.Number(label="🏆 Score")
-
     file_output = gr.File(label="⬇️ Download File")
 
+    # Run button
     run_btn.click(
         run_simulation,
         inputs=[task_dropdown, steps_input],
         outputs=[output_box, graph, score_box]
     )
 
+    # Reset button (backend expects this)
     reset_btn.click(
         reset,
         outputs=[output_box, graph, score_box, task_dropdown, steps_input]
     )
 
+    # Download CSV
     download_btn.click(
         download_results,
         inputs=[task_dropdown, steps_input],
         outputs=file_output
     )
 
-demo.launch()
+# Must use share=True for hackathon backend access
+demo.launch(share=True)
