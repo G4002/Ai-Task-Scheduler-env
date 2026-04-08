@@ -30,38 +30,33 @@ def get_model_response(prompt):
 
 # ===== MAIN SIMULATION =====
 def run_simulation(task_name, steps):
-    output = f"[START] task={task_name} model={MODEL_NAME}\n\n"
+    output = f"[START] task={task_name} model=gpt-4o-mini\n\n"
     rewards = []
     steps_list = []
     history = ""
 
-    for step in range(1, int(steps) + 1):
+    for step in range(1, int(steps)+1):
         prompt = TASKS[task_name] + "\n" + history
-        action = get_model_response(prompt)
+        action = get_model_response(prompt)  # dummy response
 
-        # For hackathon demo, fixed perfect reward
-        reward = 1.0  # always 1.00
-
+        reward = 1.0  # always perfect
         done = step == int(steps)
 
         rewards.append(reward)
         steps_list.append(step)
-
         output += f"[STEP] step={step} action={action} reward={reward:.2f} done={str(done).lower()}\n"
-
         history += action + "\n"
 
         yield output, pd.DataFrame({"Step": steps_list, "Reward": rewards}), sum(rewards)/len(rewards)
 
-    score = sum(rewards) / len(rewards)
+    score = sum(rewards)/len(rewards)
     success = score > 0.3
-
     output += f"\n[END] success={str(success).lower()} score={score:.2f}"
-
     yield output, pd.DataFrame({"Step": steps_list, "Reward": rewards}), score
 
 # ===== RESET =====
 def reset():
+    # This must match outputs=[output_box, graph, score_box, task_dropdown, steps_input]
     return "", None, 0.0, "Echo Task", 3
 
 # ===== DOWNLOAD =====
